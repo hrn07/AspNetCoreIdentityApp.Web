@@ -2,7 +2,7 @@
 
 namespace AspNetCoreIdentityApp.Web.Models
 {
-    public class AppRole:IdentityRole
+    public class AppRole : IdentityRole
     {
     }
 }

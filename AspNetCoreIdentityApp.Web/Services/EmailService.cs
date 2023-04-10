@@ -18,7 +18,7 @@ namespace AspNetCoreIdentityApp.Web.Services
         {
             var smtpClient = new SmtpClient
             {
-                Host = _emailSettings.Host,
+                Host = _emailSettings.Host!,
                 DeliveryMethod = SmtpDeliveryMethod.Network,
                 UseDefaultCredentials = false,
                 Port = 587,

@@ -1,11 +1,10 @@
-﻿using AspNetCoreIdentityApp.Web.Models;
+﻿using AspNetCoreIdentityApp.Web.Extensions;
+using AspNetCoreIdentityApp.Web.Models;
+using AspNetCoreIdentityApp.Web.Services;
 using AspNetCoreIdentityApp.Web.ViewModels;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Identity.Client;
 using System.Diagnostics;
-using AspNetCoreIdentityApp.Web.Extensions;
-using AspNetCoreIdentityApp.Web.Services;
 
 namespace AspNetCoreIdentityApp.Web.Controllers
 {
@@ -46,17 +45,21 @@ namespace AspNetCoreIdentityApp.Web.Controllers
         [HttpPost]
         public async Task<IActionResult> SignIn(SignInViewModel request, string? returnUrl = null)
         {
+            if (!ModelState.IsValid)
+            {
+                return View();
+            }
 
             returnUrl ??= Url.Action("Index", "Home");
 
-            var hasUser = await _userManager.FindByEmailAsync(request.Email);
+            var hasUser = await _userManager.FindByEmailAsync(request.Email!);
             if (hasUser == null)
             {
                 ModelState.AddModelError(string.Empty, "Email ya da şifre yanlış");
                 return View();
             }
 
-            var signInResult = await _signInManager.PasswordSignInAsync(hasUser, request.Password, request.RememberMe, true);
+            var signInResult = await _signInManager.PasswordSignInAsync(hasUser, request.Password!, request.RememberMe, true);
 
             if (signInResult.Succeeded)
             {
@@ -85,7 +88,7 @@ namespace AspNetCoreIdentityApp.Web.Controllers
                 return View();
             }
 
-            var identityResult = await _userManager.CreateAsync(new() { UserName = request.UserName, PhoneNumber = request.Phone, Email = request.Email }, request.PasswordConfirm);
+            var identityResult = await _userManager.CreateAsync(new() { UserName = request.UserName, PhoneNumber = request.Phone, Email = request.Email }, request.PasswordConfirm!);
 
             if (identityResult.Succeeded)
             {
@@ -106,7 +109,7 @@ namespace AspNetCoreIdentityApp.Web.Controllers
         [HttpPost]
         public async Task<IActionResult> ForgetPassword(ForgetPasswordViewModel request)
         {
-            var hasUser = await _userManager.FindByEmailAsync(request.Email);
+            var hasUser = await _userManager.FindByEmailAsync(request.Email!);
             if (hasUser == null)
             {
                 ModelState.AddModelError(String.Empty, "Bu email adresine sahip kullanıcı bulunamamıştır.");
@@ -152,7 +155,7 @@ namespace AspNetCoreIdentityApp.Web.Controllers
                 return View();
             }
 
-            IdentityResult result = await _userManager.ResetPasswordAsync(hasUser, token.ToString()!, request.Password);
+            IdentityResult result = await _userManager.ResetPasswordAsync(hasUser, token.ToString()!, request.Password!);
 
             if (result.Succeeded)
             {
