@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Extensions.FileProviders;
+using System.Security.Claims;
 
 namespace AspNetCoreIdentityApp.Web.Controllers
 {
@@ -15,14 +16,12 @@ namespace AspNetCoreIdentityApp.Web.Controllers
         private readonly SignInManager<AppUser> _signInManager;
         private readonly UserManager<AppUser> _userManager;
         private readonly IFileProvider _fileProvider;
-
         public MemberController(SignInManager<AppUser> signInManager, UserManager<AppUser> userManager, IFileProvider fileProvider)
         {
             _signInManager = signInManager;
             _userManager = userManager;
             _fileProvider = fileProvider;
         }
-
         public async Task<IActionResult> Index()
         {
             var currentUser = (await _userManager.FindByNameAsync(User.Identity!.Name!))!;
@@ -35,7 +34,6 @@ namespace AspNetCoreIdentityApp.Web.Controllers
             };
             return View(userViewModel);
         }
-
         public async Task Logout()
         {
             await _signInManager.SignOutAsync();
@@ -83,7 +81,7 @@ namespace AspNetCoreIdentityApp.Web.Controllers
         }
         public async Task<IActionResult> UserEdit()
         {
-            
+
             var currentUser = (await _userManager.FindByNameAsync(User.Identity!.Name!))!;
 
             var userEditViewModel = new UserEditViewModel()
@@ -95,7 +93,7 @@ namespace AspNetCoreIdentityApp.Web.Controllers
                 City = currentUser.City,
                 Gender = currentUser.Gender,
             };
-            ViewBag.genderList = new SelectList(Enum.GetNames(typeof(Gender)),userEditViewModel.Gender);
+            ViewBag.genderList = new SelectList(Enum.GetNames(typeof(Gender)), userEditViewModel.Gender);
             return View(userEditViewModel);
         }
         [HttpPost]
@@ -116,15 +114,15 @@ namespace AspNetCoreIdentityApp.Web.Controllers
             currentUser.City = request.City;
             currentUser.Gender = request.Gender;
 
-            
 
-            if (request.Picture!=null && request.Picture.Length > 0)
+
+            if (request.Picture != null && request.Picture.Length > 0)
             {
                 var wwwrootFolder = _fileProvider.GetDirectoryContents("wwwroot");
 
                 string randomFileName = $"{Guid.NewGuid().ToString()}{Path.GetExtension(request.Picture.FileName)}";
 
-                var newPicturePath = Path.Combine(wwwrootFolder!.First(x=> x.Name == "userpictures" ).PhysicalPath!,randomFileName);
+                var newPicturePath = Path.Combine(wwwrootFolder!.First(x => x.Name == "userpictures").PhysicalPath!, randomFileName);
 
                 using var stream = new FileStream(newPicturePath, FileMode.Create);
 
@@ -144,7 +142,15 @@ namespace AspNetCoreIdentityApp.Web.Controllers
 
             await _userManager.UpdateSecurityStampAsync(currentUser);
             await _signInManager.SignOutAsync();
-            await _signInManager.SignInAsync(currentUser, true);
+
+            if (request.BirthDate.HasValue)
+            {
+                await _signInManager.SignInWithClaimsAsync(currentUser, true, new[] { new Claim("birthdate", currentUser.BirthDate!.Value.ToString()) });
+            }
+            else
+            {
+                await _signInManager.SignInAsync(currentUser, true);
+            }
 
             TempData["SuccessMessage"] = "Üye bilgileri başarıyla değiştirilmiştir.";
 
@@ -160,7 +166,35 @@ namespace AspNetCoreIdentityApp.Web.Controllers
 
             return View(userEditViewModel);
         }
-
+        [HttpGet]
+        public IActionResult Claims()
+        {
+            var userClaimList = User.Claims.Select(x => new ClaimViewModel()
+            {
+                Issuer = x.Issuer,
+                Type = x.Type,
+                Value = x.Value,
+            }).ToList();
+            return View(userClaimList);
+        }
+        [Authorize(Policy = "AnkaraPolicy")]
+        [HttpGet]
+        public IActionResult AnkaraPage()
+        {
+            return View();
+        }
+        [Authorize(Policy = "ExchangePolicy")]
+        [HttpGet]
+        public IActionResult ExchangePage()
+        {
+            return View();
+        }
+        [Authorize(Policy = "ViolencePolicy")]
+        [HttpGet]
+        public IActionResult ViolencePage()
+        {
+            return View();
+        }
         public IActionResult AccessDenied(string ReturnUrl)
         {
             string message = string.Empty;

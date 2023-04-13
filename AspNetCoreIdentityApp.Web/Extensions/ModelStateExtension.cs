@@ -14,7 +14,7 @@ namespace AspNetCoreIdentityApp.Web.Extensions
 
         }
 
-        public static void AddModelErrorList(this ModelStateDictionary modelState,IEnumerable<IdentityError> errors)
+        public static void AddModelErrorList(this ModelStateDictionary modelState, IEnumerable<IdentityError> errors)
         {
             errors.ToList().ForEach(error =>
             {
